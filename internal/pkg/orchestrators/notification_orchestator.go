@@ -3,15 +3,19 @@ package orchestrators
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/jrolstad/blog-monitor/internal/configuration"
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
+	"github.com/jrolstad/blog-monitor/internal/pkg/services"
 	"google.golang.org/api/blogger/v3"
 	"google.golang.org/api/option"
+	"time"
 )
 
-func NotifyNewPosts(config *configuration.AppConfig, subscriptionRepository repositories.SubscriptionRepository) error {
+func NotifyNewPosts(config *configuration.AppConfig,
+	subscriptionRepository repositories.SubscriptionRepository,
+	notificationHistoryRepository repositories.NotificationHistoryRepository,
+	notificationService services.NotificationService) error {
 	service, err := getGoogleService(config)
 	if err != nil {
 		return err
@@ -24,7 +28,7 @@ func NotifyNewPosts(config *configuration.AppConfig, subscriptionRepository repo
 
 	processingErrors := make([]error, 0)
 	for _, item := range subscriptions {
-		err = processSubscription(service, item)
+		err = processSubscription(service, notificationHistoryRepository, notificationService, item)
 		if err != nil {
 			processingErrors = append(processingErrors, err)
 		}
@@ -38,7 +42,10 @@ func getGoogleService(config *configuration.AppConfig) (*blogger.Service, error)
 	return blogger.NewService(ctx, option.WithAPIKey(config.GoogleApiKey))
 }
 
-func processSubscription(service *blogger.Service, subscription *models.Subscription) error {
+func processSubscription(service *blogger.Service,
+	notificationHistoryRepository repositories.NotificationHistoryRepository,
+	notificationService services.NotificationService,
+	subscription *models.Subscription) error {
 	blogInfoRequest := service.Blogs.GetByUrl(subscription.BlogUrl)
 
 	response, err := blogInfoRequest.Do()
@@ -48,11 +55,20 @@ func processSubscription(service *blogger.Service, subscription *models.Subscrip
 
 	posts, err := getLatestBlogPosts(service, response.Id, subscription.MaximumLookback)
 
+	processingErrors := make([]error, 0)
 	for _, item := range posts {
-		fmt.Println(item.Content)
+		err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, item.Title, item.Content)
+		if err != nil {
+			processingErrors = append(processingErrors, err)
+		}
+
+		err = notificationHistoryRepository.TrackNotification(subscription.Id, item.Id, time.Now())
+		if err != nil {
+			processingErrors = append(processingErrors, err)
+		}
 	}
 
-	return nil
+	return errors.Join(processingErrors...)
 }
 
 func getLatestBlogPosts(service *blogger.Service, blogId string, maxPosts int) ([]*blogger.Post, error) {

@@ -24,10 +24,11 @@ func (r *ConfigSubscriptionRepository) GetSubscriptions() ([]*models.Subscriptio
 	result := make([]*models.Subscription, 0)
 	for _, item := range blogs {
 		subscription := &models.Subscription{
+			Id:                  "1",
 			BlogUrl:             item,
 			NotificationMethod:  "email",
 			NotificationTargets: []string{email},
-			MaximumLookback:     10,
+			MaximumLookback:     1,
 		}
 
 		result = append(result, subscription)
