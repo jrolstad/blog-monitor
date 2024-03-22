@@ -29,7 +29,7 @@ func (r *ConfigSubscriptionRepository) GetSubscriptions() ([]*models.Subscriptio
 			BlogUrl:             item,
 			NotificationMethod:  "email",
 			NotificationTargets: []string{email},
-			MaximumLookback:     1,
+			MaximumLookback:     10,
 		}
 
 		result = append(result, subscription)

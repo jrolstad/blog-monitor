@@ -13,15 +13,15 @@ type NotificationService interface {
 }
 
 type AmazonSesNotificationService struct {
-	sesService *ses.SES
-	sender     string
+	client *ses.SES
+	sender string
 }
 
 func NewNotificationService(config *configuration.AppConfig) NotificationService {
 	awsSession := clients.GetAwsSession(config.AwsRegion)
 	return &AmazonSesNotificationService{
-		sesService: ses.New(awsSession),
-		sender:     config.EmailSender,
+		client: ses.New(awsSession),
+		sender: config.EmailSender,
 	}
 }
 
@@ -36,7 +36,7 @@ func (s *AmazonSesNotificationService) Notify(method string, targets []string, t
 
 func (s *AmazonSesNotificationService) sendEmail(sendTo []string, title string, content string) error {
 	input := s.mapToEmailMessage(sendTo, title, content)
-	_, err := s.sesService.SendEmail(input)
+	_, err := s.client.SendEmail(input)
 
 	return err
 }
