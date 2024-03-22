@@ -10,7 +10,7 @@ import (
 
 func main() {
 	config := configuration.NewAppConfig()
-	subscriptionRepository := repositories.NewSubscriptionRepository()
+	subscriptionRepository := repositories.NewSubscriptionRepository(config)
 	notificationHistoryRepository := repositories.NewNotificationHistoryRepository()
 	notificationService := services.NewNotificationService(config)
 	secretService := services.NewSecretService()
