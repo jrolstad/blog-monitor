@@ -3,6 +3,7 @@ package orchestrators
 import (
 	"context"
 	"errors"
+	"github.com/jrolstad/blog-monitor/internal/pkg/logging"
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
 	"github.com/jrolstad/blog-monitor/internal/pkg/services"
@@ -15,6 +16,7 @@ func NotifyNewPosts(subscriptionRepository repositories.SubscriptionRepository,
 	notificationHistoryRepository repositories.NotificationHistoryRepository,
 	notificationService services.NotificationService,
 	secretService services.SecretService) error {
+
 	service, err := getGoogleService(secretService)
 	if err != nil {
 		return err
@@ -24,6 +26,8 @@ func NotifyNewPosts(subscriptionRepository repositories.SubscriptionRepository,
 	if err != nil {
 		return err
 	}
+
+	logging.LogEvent("NotifyNewPosts", "subscriptions", len(subscriptions))
 
 	processingErrors := make([]error, 0)
 	for _, item := range subscriptions {
@@ -43,21 +47,30 @@ func getGoogleService(secretService services.SecretService) (*blogger.Service, e
 		return nil, err
 	}
 
-	return blogger.NewService(ctx, option.WithAPIKey(apiKey))
+	result, err := blogger.NewService(ctx, option.WithAPIKey(apiKey))
+	logging.LogDependency("BloggerService", "action", "create", "success", err == nil)
+
+	return result, err
 }
 
 func processSubscription(service *blogger.Service,
 	notificationHistoryRepository repositories.NotificationHistoryRepository,
 	notificationService services.NotificationService,
 	subscription *models.Subscription) error {
+
+	logging.LogEvent("ProcessSubscription", "subscription", subscription.Id)
+
 	blogInfoRequest := service.Blogs.GetByUrl(subscription.BlogUrl)
 
 	response, err := blogInfoRequest.Do()
 	if err != nil {
 		return err
 	}
+	logging.LogDependency("BloggerService", "action", "GetByUrl", "success", err != nil)
 
 	posts, err := getLatestBlogPosts(service, response.Id, subscription.MaximumLookback)
+
+	logging.LogEvent("GetSubscriptionPosts", "posts", len(posts))
 
 	processingErrors := make([]error, 0)
 	for _, item := range posts {
@@ -66,6 +79,7 @@ func processSubscription(service *blogger.Service,
 			processingErrors = append(processingErrors, err)
 			continue
 		}
+		logging.LogEvent("ProcessSubscriptionPost", "subscription", subscription.Id, "post", item.Id, "alreadyNotified", alreadyNotified)
 
 		if !alreadyNotified {
 			err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, item.Title, item.Content)
@@ -73,11 +87,14 @@ func processSubscription(service *blogger.Service,
 				processingErrors = append(processingErrors, err)
 				continue
 			}
+			logging.LogEvent("ProcessSubscriptionNotified", "subscription", subscription.Id, "post", item.Id)
 
 			err = notificationHistoryRepository.TrackNotification(subscription.Id, item.Id, time.Now())
 			if err != nil {
 				processingErrors = append(processingErrors, err)
 			}
+			logging.LogEvent("ProcessSubscriptionNotificationTracked", "subscription", subscription.Id, "post", item.Id)
+
 		}
 	}
 
@@ -95,5 +112,7 @@ func getLatestBlogPosts(service *blogger.Service, blogId string, maxPosts int) (
 		OrderBy("published")
 
 	response, err := listRequest.Do()
+	logging.LogDependency("BloggerService", "action", "GetPosts", "success", err == nil, "blogId", blogId)
+
 	return response.Items, err
 }
