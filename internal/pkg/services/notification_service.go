@@ -4,8 +4,8 @@ import (
 	"errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
-	"github.com/jrolstad/blog-monitor/internal/configuration"
 	"github.com/jrolstad/blog-monitor/internal/pkg/clients"
+	"github.com/jrolstad/blog-monitor/internal/pkg/configuration"
 )
 
 type NotificationService interface {

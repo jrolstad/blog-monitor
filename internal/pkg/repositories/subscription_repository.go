@@ -3,8 +3,8 @@ package repositories
 import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/jrolstad/blog-monitor/internal/configuration"
 	"github.com/jrolstad/blog-monitor/internal/pkg/clients"
+	"github.com/jrolstad/blog-monitor/internal/pkg/configuration"
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"strconv"
 )

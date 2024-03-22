@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jrolstad/blog-monitor/internal/configuration"
+	"github.com/jrolstad/blog-monitor/internal/pkg/configuration"
 	"github.com/jrolstad/blog-monitor/internal/pkg/logging"
 	"github.com/jrolstad/blog-monitor/internal/pkg/orchestrators"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
