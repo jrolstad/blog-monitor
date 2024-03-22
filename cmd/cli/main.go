@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jrolstad/blog-monitor/internal/pkg/logging"
 	"github.com/jrolstad/blog-monitor/internal/pkg/orchestrators"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
 	"github.com/jrolstad/blog-monitor/internal/pkg/services"
@@ -15,6 +16,6 @@ func main() {
 	err := orchestrators.NotifyNewPosts(subscriptionRepository, notificationHistoryRepository, notificationService, secretService)
 
 	if err != nil {
-		panic(err)
+		logging.LogPanic(err)
 	}
 }

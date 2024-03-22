@@ -25,6 +25,7 @@ func (r *ConfigSubscriptionRepository) GetSubscriptions() ([]*models.Subscriptio
 	for _, item := range blogs {
 		subscription := &models.Subscription{
 			Id:                  "1",
+			Name:                "Blog Post",
 			BlogUrl:             item,
 			NotificationMethod:  "email",
 			NotificationTargets: []string{email},

@@ -3,6 +3,7 @@ package orchestrators
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/jrolstad/blog-monitor/internal/pkg/logging"
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
@@ -27,7 +28,7 @@ func NotifyNewPosts(subscriptionRepository repositories.SubscriptionRepository,
 		return err
 	}
 
-	logging.LogEvent("NotifyNewPosts", "subscriptions", len(subscriptions))
+	logging.LogEvent("NotifyNewPosts", "subscriptions", len(subscriptions), "status", "started")
 
 	processingErrors := make([]error, 0)
 	for _, item := range subscriptions {
@@ -36,6 +37,8 @@ func NotifyNewPosts(subscriptionRepository repositories.SubscriptionRepository,
 			processingErrors = append(processingErrors, err)
 		}
 	}
+
+	logging.LogEvent("NotifyNewPosts", "status", "complete")
 
 	return errors.Join(processingErrors...)
 }
@@ -82,7 +85,9 @@ func processSubscription(service *blogger.Service,
 		logging.LogEvent("ProcessSubscriptionPost", "subscription", subscription.Id, "post", item.Id, "alreadyNotified", alreadyNotified)
 
 		if !alreadyNotified {
-			err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, item.Title, item.Content)
+			title := fmt.Sprintf("[%s] : %s", subscription.Name, item.Title)
+			content := fmt.Sprintf("<p>Source: %s<p> %s", item.Url, item.Content)
+			err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, title, content)
 			if err != nil {
 				processingErrors = append(processingErrors, err)
 				continue
