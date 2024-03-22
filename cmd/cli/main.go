@@ -11,7 +11,7 @@ import (
 func main() {
 	config := configuration.NewAppConfig()
 	subscriptionRepository := repositories.NewSubscriptionRepository(config)
-	notificationHistoryRepository := repositories.NewNotificationHistoryRepository()
+	notificationHistoryRepository := repositories.NewNotificationHistoryRepository(config)
 	notificationService := services.NewNotificationService(config)
 	secretService := services.NewSecretService()
 
