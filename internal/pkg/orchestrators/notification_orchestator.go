@@ -45,7 +45,7 @@ func NotifyNewPosts(subscriptionRepository repositories.SubscriptionRepository,
 
 func getGoogleService(secretService services.SecretService) (*blogger.Service, error) {
 	ctx := context.Background()
-	apiKey, err := secretService.Get(services.Secret_GoogleApiKey)
+	apiKey, err := secretService.GetGoogleApiKey()
 	if err != nil {
 		return nil, err
 	}

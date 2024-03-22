@@ -13,7 +13,7 @@ func main() {
 	subscriptionRepository := repositories.NewSubscriptionRepository(config)
 	notificationHistoryRepository := repositories.NewNotificationHistoryRepository(config)
 	notificationService := services.NewNotificationService(config)
-	secretService := services.NewSecretService()
+	secretService := services.NewSecretService(config)
 
 	err := orchestrators.NotifyNewPosts(subscriptionRepository, notificationHistoryRepository, notificationService, secretService)
 
