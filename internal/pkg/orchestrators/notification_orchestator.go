@@ -3,7 +3,6 @@ package orchestrators
 import (
 	"context"
 	"errors"
-	"github.com/jrolstad/blog-monitor/internal/configuration"
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
 	"github.com/jrolstad/blog-monitor/internal/pkg/services"
@@ -12,11 +11,11 @@ import (
 	"time"
 )
 
-func NotifyNewPosts(config *configuration.AppConfig,
-	subscriptionRepository repositories.SubscriptionRepository,
+func NotifyNewPosts(subscriptionRepository repositories.SubscriptionRepository,
 	notificationHistoryRepository repositories.NotificationHistoryRepository,
-	notificationService services.NotificationService) error {
-	service, err := getGoogleService(config)
+	notificationService services.NotificationService,
+	secretService services.SecretService) error {
+	service, err := getGoogleService(secretService)
 	if err != nil {
 		return err
 	}
@@ -37,9 +36,14 @@ func NotifyNewPosts(config *configuration.AppConfig,
 	return errors.Join(processingErrors...)
 }
 
-func getGoogleService(config *configuration.AppConfig) (*blogger.Service, error) {
+func getGoogleService(secretService services.SecretService) (*blogger.Service, error) {
 	ctx := context.Background()
-	return blogger.NewService(ctx, option.WithAPIKey(config.GoogleApiKey))
+	apiKey, err := secretService.Get(services.Secret_GoogleApiKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return blogger.NewService(ctx, option.WithAPIKey(apiKey))
 }
 
 func processSubscription(service *blogger.Service,
@@ -57,14 +61,23 @@ func processSubscription(service *blogger.Service,
 
 	processingErrors := make([]error, 0)
 	for _, item := range posts {
-		err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, item.Title, item.Content)
+		alreadyNotified, err := notificationHistoryRepository.Exists(subscription.Id, item.Id)
 		if err != nil {
 			processingErrors = append(processingErrors, err)
+			continue
 		}
 
-		err = notificationHistoryRepository.TrackNotification(subscription.Id, item.Id, time.Now())
-		if err != nil {
-			processingErrors = append(processingErrors, err)
+		if !alreadyNotified {
+			err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, item.Title, item.Content)
+			if err != nil {
+				processingErrors = append(processingErrors, err)
+				continue
+			}
+
+			err = notificationHistoryRepository.TrackNotification(subscription.Id, item.Id, time.Now())
+			if err != nil {
+				processingErrors = append(processingErrors, err)
+			}
 		}
 	}
 
