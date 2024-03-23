@@ -1,7 +1,7 @@
 resource "aws_dynamodb_table" "subscriptions" {
   name         = "${local.service_name}_subscriptions"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "Id"
+  hash_key     = "id"
 
   attribute {
     name = "id"
@@ -13,7 +13,7 @@ resource "aws_dynamodb_table" "subscriptions" {
 resource "aws_dynamodb_table" "notification_history" {
   name         = "${local.service_name}_notification_history"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "Id"
+  hash_key     = "id"
 
   attribute {
     name = "id"
