@@ -21,3 +21,6 @@
 go.work
 
 .idea/
+.terraform/
+.terraform.lock.hcl
+.DS_Store
