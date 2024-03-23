@@ -11,3 +11,15 @@ variable "environment" {
   type    = string
   default = "prd"
 }
+
+variable "google_api_key" {
+  description = "API Key to use when calling Google services"
+
+  type = string
+}
+
+variable "email_sender" {
+  description = "Email address to send from when notifying via email."
+
+  type = string
+}

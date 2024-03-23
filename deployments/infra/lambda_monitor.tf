@@ -17,7 +17,11 @@ resource "aws_lambda_function" "cron_monitor" {
 
   environment {
     variables = {
-      aws_region = var.aws_region
+      aws_region                      = var.aws_region
+      email_sender                    = var.email_sender
+      subscription_table_name         = aws_dynamodb_table.subscriptions.name
+      notification_history_table_name = aws_dynamodb_table.notification_history.name
+      secret_google_api_key           = aws_secretsmanager_secret.google_api_key.name
     }
   }
 
