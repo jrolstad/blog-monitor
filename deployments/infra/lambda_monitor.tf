@@ -34,14 +34,14 @@ resource "aws_cloudwatch_log_group" "cron_monitor" {
   retention_in_days = 30
 }
 
-resource "aws_cloudwatch_event_rule" "every_twelve_hours" {
-  name                = "every-twelve-hours"
-  description         = "Fires every 12 hours"
-  schedule_expression = "rate(12 hours)"
+resource "aws_cloudwatch_event_rule" "every_hour" {
+  name                = "every-hour"
+  description         = "Fires every 1 hours"
+  schedule_expression = "rate(1 hours)"
 }
 
-resource "aws_cloudwatch_event_target" "load_owners_every_twelve_hours" {
-  rule      = aws_cloudwatch_event_rule.every_twelve_hours.name
+resource "aws_cloudwatch_event_target" "load_owners_every_hour" {
+  rule      = aws_cloudwatch_event_rule.every_hour.name
   target_id = "lambda"
   arn       = aws_lambda_function.cron_monitor.arn
 }
@@ -51,5 +51,5 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_cron_monitor" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.cron_monitor.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.every_twelve_hours.arn
+  source_arn    = aws_cloudwatch_event_rule.every_hour.arn
 }
