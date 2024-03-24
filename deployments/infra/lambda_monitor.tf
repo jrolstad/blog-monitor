@@ -13,6 +13,7 @@ resource "aws_lambda_function" "cron_monitor" {
   handler          = "main"
   source_code_hash = filebase64sha256(data.archive_file.cron_lambda_zip.output_path)
   runtime          = "provided.al2"
+  architectures    = ["arm64"]
   timeout          = 600
 
   environment {
