@@ -1,6 +1,6 @@
 data "archive_file" "cron_lambda_zip" {
   type        = "zip"
-  source_file = "../../cmd/lambda/cron_monitor/main"
+  source_file = "../../cmd/lambda/cron_monitor/bootstrap"
   output_path = "monitor_main.zip"
 }
 
@@ -12,7 +12,8 @@ resource "aws_lambda_function" "cron_monitor" {
   filename         = data.archive_file.cron_lambda_zip.output_path
   handler          = "main"
   source_code_hash = filebase64sha256(data.archive_file.cron_lambda_zip.output_path)
-  runtime          = "go1.x"
+  runtime          = "provided.al2"
+  architectures    = ["arm64"]
   timeout          = 600
 
   environment {
@@ -33,14 +34,14 @@ resource "aws_cloudwatch_log_group" "cron_monitor" {
   retention_in_days = 30
 }
 
-resource "aws_cloudwatch_event_rule" "every_twelve_hours" {
-  name                = "every-twelve-hours"
-  description         = "Fires every 12 hours"
-  schedule_expression = "rate(12 hours)"
+resource "aws_cloudwatch_event_rule" "every_hour" {
+  name                = "every-hour"
+  description         = "Fires every hour"
+  schedule_expression = "rate(60 minutes)"
 }
 
-resource "aws_cloudwatch_event_target" "load_owners_every_twelve_hours" {
-  rule      = aws_cloudwatch_event_rule.every_twelve_hours.name
+resource "aws_cloudwatch_event_target" "load_owners_every_hour" {
+  rule      = aws_cloudwatch_event_rule.every_hour.name
   target_id = "lambda"
   arn       = aws_lambda_function.cron_monitor.arn
 }
@@ -50,5 +51,5 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_cron_monitor" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.cron_monitor.function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.every_twelve_hours.arn
+  source_arn    = aws_cloudwatch_event_rule.every_hour.arn
 }
