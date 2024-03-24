@@ -36,8 +36,8 @@ resource "aws_cloudwatch_log_group" "cron_monitor" {
 
 resource "aws_cloudwatch_event_rule" "every_hour" {
   name                = "every-hour"
-  description         = "Fires every 1 hours"
-  schedule_expression = "rate(1 hours)"
+  description         = "Fires every hour"
+  schedule_expression = "rate(60 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "load_owners_every_hour" {
