@@ -1,6 +1,6 @@
 data "archive_file" "cron_lambda_zip" {
   type        = "zip"
-  source_file = "../../cmd/lambda/cron_monitor/main"
+  source_file = "../../cmd/lambda/cron_monitor/bootstrap"
   output_path = "monitor_main.zip"
 }
 
