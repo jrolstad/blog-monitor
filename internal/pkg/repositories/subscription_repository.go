@@ -52,6 +52,7 @@ func (r *DynamoDbSubscriptionRepository) mapItemToSubscription(item map[string]*
 		NotificationMethod:  r.getStringValue(item["notificationMethod"]),
 		NotificationTargets: r.getStringSliceValue(item["notificationTargets"]),
 		MaximumLookback:     r.getIntValue(item["maximumLookback"]),
+		Type:                r.getStringValue(item["type"]),
 	}
 }
 
