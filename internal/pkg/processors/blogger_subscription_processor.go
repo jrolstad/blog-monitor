@@ -20,7 +20,7 @@ type BloggerSubscriptionProcessor struct {
 func (s *BloggerSubscriptionProcessor) ProcessSubscription(notificationHistoryRepository repositories.NotificationHistoryRepository,
 	notificationService services.NotificationService,
 	subscription *models.Subscription) error {
-	logging.LogEvent("ProcessSubscription", "subscription", subscription.Id)
+	logging.LogEvent("BloggerSubscriptionProcessor.ProcessSubscription", "subscription", subscription.Id)
 
 	service, err := getGoogleService(s.secretService)
 	if err != nil {

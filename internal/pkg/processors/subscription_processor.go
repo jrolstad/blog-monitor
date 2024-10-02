@@ -15,9 +15,12 @@ type SubscriptionProcessor interface {
 		subscription *models.Subscription) error
 }
 
-func NewSubscriptionProcessor(subscription *models.Subscription, secretService services.SecretService) (*BloggerSubscriptionProcessor, error) {
+func NewSubscriptionProcessor(subscription *models.Subscription, secretService services.SecretService) (SubscriptionProcessor, error) {
 	if strings.EqualFold("blogger", subscription.Type) {
 		return &BloggerSubscriptionProcessor{secretService: secretService}, nil
 	}
-	return nil, errors.New(fmt.Sprintf("Unrecognized type: |%s|", subscription.Type))
+	if strings.EqualFold("national-weather-service", subscription.Type) {
+		return &NationalWeatherServiceSubscriptionProcessor{}, nil
+	}
+	return nil, errors.New(fmt.Sprintf("unrecognized type: |%s|", subscription.Type))
 }
