@@ -7,4 +7,5 @@ type Subscription struct {
 	NotificationMethod  string
 	NotificationTargets []string
 	MaximumLookback     int
+	Type                string
 }
