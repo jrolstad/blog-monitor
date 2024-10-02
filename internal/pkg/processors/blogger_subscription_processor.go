@@ -33,7 +33,7 @@ func (s *BloggerSubscriptionProcessor) ProcessSubscription(notificationHistoryRe
 	if err != nil {
 		return err
 	}
-	logging.LogDependency("BloggerService", "action", "GetByUrl", "success", err != nil)
+	logging.LogDependency("BloggerService", "action", "GetByUrl", "success", err == nil)
 
 	posts, err := getLatestBlogPosts(service, response.Id, subscription.MaximumLookback)
 

@@ -3,6 +3,7 @@ package processors
 import (
 	"errors"
 	"fmt"
+	"github.com/jrolstad/blog-monitor/internal/pkg/clients"
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
 	"github.com/jrolstad/blog-monitor/internal/pkg/services"
@@ -20,7 +21,11 @@ func NewSubscriptionProcessor(subscription *models.Subscription, secretService s
 		return &BloggerSubscriptionProcessor{secretService: secretService}, nil
 	}
 	if strings.EqualFold("national-weather-service", subscription.Type) {
-		return &NationalWeatherServiceSubscriptionProcessor{}, nil
+		client, err := clients.NewNationalWeatherServiceClient()
+		if err != nil {
+			return nil, err
+		}
+		return &NationalWeatherServiceSubscriptionProcessor{client: client}, nil
 	}
 	return nil, errors.New(fmt.Sprintf("unrecognized type: |%s|", subscription.Type))
 }
