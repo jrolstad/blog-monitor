@@ -15,7 +15,7 @@ func NewNationalWeatherServiceClient() (*NationalWeatherServiceClient, error) {
 	return &NationalWeatherServiceClient{}, nil
 }
 
-func (s *NationalWeatherServiceClient) GetData(url string) ([]NWSProduct, error) {
+func (s *NationalWeatherServiceClient) GetProductData(url string) ([]NWSProduct, error) {
 	data, err := s.fetchAPIResponse(url)
 	if err != nil {
 		return []NWSProduct{}, err
@@ -23,7 +23,7 @@ func (s *NationalWeatherServiceClient) GetData(url string) ([]NWSProduct, error)
 	return data.Graph, nil
 }
 
-func (s *NationalWeatherServiceClient) GetItem(url string) (NWSProduct, error) {
+func (s *NationalWeatherServiceClient) GetProductItem(url string) (NWSProduct, error) {
 	data, err := s.fetchAPIResponseSingleItem(url)
 	if err != nil {
 		return NWSProduct{}, err

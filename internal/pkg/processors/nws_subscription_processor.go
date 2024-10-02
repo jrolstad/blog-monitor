@@ -10,6 +10,7 @@ import (
 	"html"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type NationalWeatherServiceSubscriptionProcessor struct {
@@ -22,17 +23,21 @@ func (s *NationalWeatherServiceSubscriptionProcessor) ProcessSubscription(notifi
 
 	logging.LogEvent("NationalWeatherServiceSubscriptionProcessor.ProcessSubscription", "subscription", subscription.Id)
 
-	posts, err := s.client.GetData(subscription.BlogUrl)
+	posts, err := s.client.GetProductData(subscription.BlogUrl)
 	logging.LogDependency("NationalWeatherServiceClient", "action", "GetData", "success", err == nil)
 	if err != nil {
 		return err
+	}
+	if len(posts) == 0 {
+		logging.LogEvent("No Items Received")
+		return nil
 	}
 
 	mostRecentItem, err := getMostRecentItem(posts)
 	if err != nil {
 		return err
 	}
-	logging.LogEvent("GetMostRecentItem", "IssuedAt", mostRecentItem.IssuanceTime.Format("2006-01-02 15:04:05 MST"))
+	logging.LogEvent("GetMostRecentItem", "IssuedAt", formatDate(mostRecentItem.IssuanceTime))
 
 	alreadyNotified, err := notificationHistoryRepository.Exists(subscription.Id, mostRecentItem.URL)
 	if err != nil {
@@ -42,14 +47,14 @@ func (s *NationalWeatherServiceSubscriptionProcessor) ProcessSubscription(notifi
 		return nil
 	}
 
-	detailedItem, err := s.client.GetItem(mostRecentItem.URL)
+	detailedItem, err := s.client.GetProductItem(mostRecentItem.URL)
 	logging.LogDependency("NationalWeatherServiceClient", "action", "GetItem", "success", err == nil)
 	if err != nil {
 		return err
 	}
 
-	title := fmt.Sprintf("[%s] : %s", subscription.Name, detailedItem.ProductName)
-	formattedProductText := formatProductTextToHTML(detailedItem.ProductText)
+	title := fmt.Sprintf("[%s] : %s", subscription.Name, formatDate(detailedItem.IssuanceTime))
+	formattedProductText := formatProductTextToHtml(detailedItem.ProductText)
 	content := fmt.Sprintf("<p>Source: %s<p> %s", detailedItem.URL, formattedProductText)
 
 	err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, title, content)
@@ -58,18 +63,22 @@ func (s *NationalWeatherServiceSubscriptionProcessor) ProcessSubscription(notifi
 	}
 	logging.LogEvent("ProcessSubscriptionNotified", "subscription", subscription.Id, "post", detailedItem.URL)
 
-	//err = notificationHistoryRepository.TrackNotification(subscription.Id, detailedItem.URL, time.Now())
-	//if err != nil {
-	//	return err
-	//}
+	err = notificationHistoryRepository.TrackNotification(subscription.Id, detailedItem.URL, time.Now())
+	if err != nil {
+		return err
+	}
 	logging.LogEvent("ProcessSubscriptionNotificationTracked", "subscription", subscription.Id, "post", detailedItem.URL)
 
 	return nil
 }
 
+func formatDate(toFormat time.Time) string {
+	return toFormat.Format(time.RFC850)
+}
+
 func getMostRecentItem(items []clients.NWSProduct) (clients.NWSProduct, error) {
 	if len(items) == 0 {
-		return clients.NWSProduct{}, fmt.Errorf("no products available")
+		return clients.NWSProduct{}, nil
 	}
 
 	mostRecent := items[0]
@@ -82,32 +91,34 @@ func getMostRecentItem(items []clients.NWSProduct) (clients.NWSProduct, error) {
 	return mostRecent, nil
 }
 
-func formatProductTextToHTML(text string) string {
-	// Escape HTML special characters
+func formatProductTextToHtml(text string) string {
 	escapedText := html.EscapeString(text)
 
-	// Define a regular expression to capture section headers (e.g., ".SYNOPSIS", ".SHORT TERM", etc.)
 	sectionRegex := regexp.MustCompile(`(?m)^(\.\w[\w\s/]+)\.\.\.`)
-
-	// Split text into sections and retain delimiters
 	splitSections := sectionRegex.Split(escapedText, -1)
 	sectionMatches := sectionRegex.FindAllStringSubmatch(escapedText, -1)
 
-	// Start building the HTML content
 	var htmlBuilder strings.Builder
-	htmlBuilder.WriteString("<html><body>")
-
-	// Handle sections
-	for i, section := range splitSections {
-		if i > 0 && i <= len(sectionMatches) { // Add headers for each section
-			header := strings.TrimPrefix(sectionMatches[i-1][1], ".")
-			htmlBuilder.WriteString(fmt.Sprintf("<h2>%s</h2>", html.EscapeString(header)))
+	for sectionIndex, section := range splitSections {
+		if isSectionHeader(sectionIndex, sectionMatches) {
+			header := strings.TrimPrefix(sectionMatches[sectionIndex-1][1], ".")
+			formattedSectionHeader := fmt.Sprintf("<h2>%s</h2>", html.EscapeString(header))
+			htmlBuilder.WriteString(formattedSectionHeader)
 		}
-		// Replace newlines with <br/> and add section text
-		sectionHTML := strings.ReplaceAll(section, "\n", "<br/>")
-		htmlBuilder.WriteString(sectionHTML)
+
+		cleanedSection := removeArtificialNewlinesInSection(section)
+		formattedSectionDetail := strings.ReplaceAll(cleanedSection, "\n", "<br/>")
+		htmlBuilder.WriteString(formattedSectionDetail)
 	}
 
-	htmlBuilder.WriteString("</body></html>")
 	return htmlBuilder.String()
+}
+
+func isSectionHeader(sectionIndex int, sectionMatches [][]string) bool {
+	return sectionIndex > 0 && sectionIndex <= len(sectionMatches)
+}
+
+func removeArtificialNewlinesInSection(section string) string {
+	expression := regexp.MustCompile(`([^\n])\n([^\n])`)
+	return expression.ReplaceAllString(section, "$1 $2")
 }
