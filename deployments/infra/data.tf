@@ -26,7 +26,7 @@ resource "aws_dynamodb_table_item" "subscription_cliffmassweather" {
   },
   "type": {
       "S": "blogger"
-    },
+  }
 }
 ITEM
 }
@@ -59,7 +59,7 @@ resource "aws_dynamodb_table_item" "subscription_wasmoke" {
   },
   "type": {
       "S": "blogger"
-    },
+  }
 }
 ITEM
 }
