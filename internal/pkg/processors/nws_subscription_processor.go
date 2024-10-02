@@ -8,7 +8,6 @@ import (
 )
 
 type NationalWeatherServiceSubscriptionProcessor struct {
-	secretService services.SecretService
 }
 
 func (s *NationalWeatherServiceSubscriptionProcessor) ProcessSubscription(notificationHistoryRepository repositories.NotificationHistoryRepository,
