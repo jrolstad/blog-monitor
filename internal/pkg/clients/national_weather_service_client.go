@@ -86,7 +86,7 @@ func (s *NationalWeatherServiceClient) fetchAPIResponseSingleItem(apiURL string)
 }
 
 type NWSProduct struct {
-	ID              string    `json:"id"`
+	Id              string    `json:"id"`
 	URL             string    `json:"@id"`
 	WmoCollectiveID string    `json:"wmoCollectiveId"`
 	IssuingOffice   string    `json:"issuingOffice"`

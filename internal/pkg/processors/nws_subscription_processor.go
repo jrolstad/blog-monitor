@@ -7,6 +7,9 @@ import (
 	"github.com/jrolstad/blog-monitor/internal/pkg/models"
 	"github.com/jrolstad/blog-monitor/internal/pkg/repositories"
 	"github.com/jrolstad/blog-monitor/internal/pkg/services"
+	"html"
+	"regexp"
+	"strings"
 )
 
 type NationalWeatherServiceSubscriptionProcessor struct {
@@ -39,19 +42,27 @@ func (s *NationalWeatherServiceSubscriptionProcessor) ProcessSubscription(notifi
 		return nil
 	}
 
-	item, err := s.client.GetItem(mostRecentItem.URL)
+	detailedItem, err := s.client.GetItem(mostRecentItem.URL)
 	logging.LogDependency("NationalWeatherServiceClient", "action", "GetItem", "success", err == nil)
 	if err != nil {
 		return err
 	}
 
-	title := fmt.Sprintf("[%s] : %s", subscription.Name, item.ProductName)
-	content := fmt.Sprintf("<p>Source: %s<p> %s", item.URL, item.ProductText)
+	title := fmt.Sprintf("[%s] : %s", subscription.Name, detailedItem.ProductName)
+	formattedProductText := formatProductTextToHTML(detailedItem.ProductText)
+	content := fmt.Sprintf("<p>Source: %s<p> %s", detailedItem.URL, formattedProductText)
+
 	err = notificationService.Notify(subscription.NotificationMethod, subscription.NotificationTargets, title, content)
 	if err != nil {
 		return err
 	}
-	logging.LogEvent("ProcessSubscriptionNotified", "subscription", subscription.Id, "post", item.URL)
+	logging.LogEvent("ProcessSubscriptionNotified", "subscription", subscription.Id, "post", detailedItem.URL)
+
+	//err = notificationHistoryRepository.TrackNotification(subscription.Id, detailedItem.URL, time.Now())
+	//if err != nil {
+	//	return err
+	//}
+	logging.LogEvent("ProcessSubscriptionNotificationTracked", "subscription", subscription.Id, "post", detailedItem.URL)
 
 	return nil
 }
@@ -69,4 +80,34 @@ func getMostRecentItem(items []clients.NWSProduct) (clients.NWSProduct, error) {
 	}
 
 	return mostRecent, nil
+}
+
+func formatProductTextToHTML(text string) string {
+	// Escape HTML special characters
+	escapedText := html.EscapeString(text)
+
+	// Define a regular expression to capture section headers (e.g., ".SYNOPSIS", ".SHORT TERM", etc.)
+	sectionRegex := regexp.MustCompile(`(?m)^(\.\w[\w\s/]+)\.\.\.`)
+
+	// Split text into sections and retain delimiters
+	splitSections := sectionRegex.Split(escapedText, -1)
+	sectionMatches := sectionRegex.FindAllStringSubmatch(escapedText, -1)
+
+	// Start building the HTML content
+	var htmlBuilder strings.Builder
+	htmlBuilder.WriteString("<html><body>")
+
+	// Handle sections
+	for i, section := range splitSections {
+		if i > 0 && i <= len(sectionMatches) { // Add headers for each section
+			header := strings.TrimPrefix(sectionMatches[i-1][1], ".")
+			htmlBuilder.WriteString(fmt.Sprintf("<h2>%s</h2>", html.EscapeString(header)))
+		}
+		// Replace newlines with <br/> and add section text
+		sectionHTML := strings.ReplaceAll(section, "\n", "<br/>")
+		htmlBuilder.WriteString(sectionHTML)
+	}
+
+	htmlBuilder.WriteString("</body></html>")
+	return htmlBuilder.String()
 }
